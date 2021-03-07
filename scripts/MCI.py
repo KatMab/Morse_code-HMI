@@ -2,13 +2,13 @@
 import sys
 import copy
 import rospy
+import time
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
 from moveit_commander.conversions import pose_to_list
 from ros_myo.msg import MyoPose
-# from myo_raw import MyoRaw, Pose
-# from PyoConnectLib import *
+
 
 mc = []
 
@@ -78,7 +78,7 @@ class MoveGroupPythonIntefaceTutorial(object):
         place_list.append(copy.deepcopy(place_location))
 
         self.arm_group.place("box", place_location)
-        #self.open_gripper()
+        self.open_gripper()
         self.detach_box()
 
     def pick(self, x, y, z):
@@ -112,7 +112,7 @@ class MoveGroupPythonIntefaceTutorial(object):
         grasp_list.append(copy.deepcopy(grasp))
 
         self.arm_group.pick("box", grasp_list)
-        # self.close_gripper()
+        self.close_gripper()
         self.attach_box()
 
     def close_gripper(self):
@@ -250,125 +250,127 @@ def all_close(goal, actual, tolerance):
 
     return True
 
+# MYO stuff (MC = morse code)
+
 def MC_logic(gest):
     global mc
-    if gest.pose == 3: # WAVE_IN
+    if gest.pose == 2:  # FIST / DOT
         mc.append(0)
-        rospy.loginfo("Wave-in")
+        # rospy.loginfo("Wave-in")
         print(mc)
-        return mc
-
-    elif gest.pose == 4: #WAVE_OUT
+    elif gest.pose == 5:  # FINGERS_SPREAD / DASH
         mc.append(1)
-        rospy.loginfo("Wave-out")
+        # rospy.loginfo("Wave-out")
         print(mc)
-        return mc
-
-    if len(mc) == 2 and mc == [0, 0]:
-        print("Moving to the front")
-        tutorial = MoveGroupPythonIntefaceTutorial()
-        tutorial.go_to_pose_goal(0.5, 0, 0.25)
+    elif gest.pose == 1:  # FIST / DONE
+        MC_commands(mc)
         mc = []
-        print("Ready for next command")
 
-    # back
-    if len(mc) == 2 and mc == [0, 1]:
-        print("Moving to the back")
+def MC_commands(mc):
+# OPEN/CLOSE
+    if mc == [0]:
+        # open gripper
+        rospy.loginfo("OPEN Gripper")
         tutorial = MoveGroupPythonIntefaceTutorial()
-        tutorial.go_to_pose_goal(-0.5, 0, 0.25)
-        mc = []
-        print("Ready for next command")
+        tutorial.open_gripper()
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [1]:
+        # close gripper
+        rospy.loginfo("CLOSE Gripper")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.close_gripper()
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
 
-    # right
-    if len(mc) == 2 and mc == [1, 0]:
-        print("Moving to the right")
+# 4 positions
+    elif mc == [0, 0]:
+        # GO to the right
+        rospy.loginfo("GO Right")
         tutorial = MoveGroupPythonIntefaceTutorial()
         tutorial.go_to_pose_goal(0, 0.5, 0.25)
-        mc = []
-        print("Ready for next command")
-
-    # left
-    if len(mc) == 2 and mc == [1, 1]:
-        print("Moving to the left")
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [0, 1]:
+        # GO to the left
+        rospy.loginfo("GO Left")
         tutorial = MoveGroupPythonIntefaceTutorial()
         tutorial.go_to_pose_goal(0, -0.5, 0.25)
-        mc = []
-        print("Ready for next command")
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [1, 0]:
+        # GO to the front
+        rospy.loginfo("GO Front")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.go_to_pose_goal(0.5, 0, 0.25)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [1, 1]:
+        # GO to the back
+        rospy.loginfo("GO Back")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.go_to_pose_goal(-0.5, 0, 0.25)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
 
-# MYO stuff
-
-
-def MC_commands():
-    global mc
-    if len(mc) == 1:
-        rospy.loginfo("wait for 3 seconds")
-        rospy.sleep(3)  # wait to see if mc is more than 1
-
-        if len(mc) == 1:  # if its not then do commands for 1
-            rospy.loginfo("Length is 1")
-            if mc == [0]:
-                # open gripper
-                tutorial.open_gripper()
-                mc = []
-                pass
-            elif mc == [1]:
-                # close gripper
-                tutorial.close_gripper()
-                mc = []
-                pass
-
-        elif len(mc) == 2:  # if it is then wait for more than 2
-            rospy.sleep(3)
-
-            if len(mc) == 2:
-                rospy.loginfo("Length is 2")
-                if mc == [0, 0]:
-                    # GO to the right
-                    tutorial.go_to_pose_goal(0, 0.5, 0.25)
-                    mc = []
-                    pass
-                elif mc == [0, 1]:
-                    # GO to the left
-                    tutorial.go_to_pose_goal(0, -0.5, 0.25)
-                    mc = []
-                    pass
-                elif mc == [1, 0]:
-                    # GO to the front
-                    tutorial.go_to_pose_goal(0.5, 0, 0.25)
-                    mc = []
-                    pass
-                elif mc == [1, 1]:
-                    # GO to the back
-                    tutorial.go_to_pose_goal(-0.5, 0, 0.25)
-                    mc = []
-                    pass
-
-        elif len(mc) == 3:
-            rospy.loginfo("Length is 3")
-            if mc == [0, 0, 0]:
-                # GO to the right
-                pass
-            elif mc == [0, 0, 1]:
-                # GO to the left
-                pass
-            elif mc == [0, 1, 0]:
-                # GO to the front
-                pass
-            elif mc == [0, 1, 1]:
-                # GO to the back
-                pass
-            elif mc == [1, 0, 0]:
-                # GO to the back
-                pass
-            elif mc == [1, 0, 1]:
-                # GO to the back
-                pass
-            elif mc == [1, 1, 0]:
-                # GO to the back
-                pass
-            elif mc == [1, 1, 1]:
-                # GO to the back
-                pass
+# 4 positions for PICK/PLACE
+    elif mc == [0, 0, 0]:
+        # PLACE to the right
+        rospy.loginfo("PLACE down box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.place(0, 0.5, 0.1)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+        pass
+    elif mc == [0, 0, 1]:
+        # PLACE to the left
+        rospy.loginfo("PLACE down box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.place(0, -0.5, 0.1)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [0, 1, 0]:
+        # PLACE to the front
+        rospy.loginfo("PLACE down box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.place(0.5, 0, 0.1)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [0, 1, 1]:
+        # PLACE to the back
+        rospy.loginfo("PLACE down box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.place(-0.5, 0, 0.1)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [1, 0, 0]:
+        # GO to the right
+        rospy.loginfo("PLACE down box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.place(0, 0.5, 0.1)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [1, 0, 1]:
+        # GO to the left
+        rospy.loginfo("PICK up box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.pick(0, -0.5, 0.15)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [1, 1, 0]:
+        # GO to the front
+        rospy.loginfo("PICK up box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.pick(0.5, 0, 0.15)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
+    elif mc == [1, 1, 1]:
+        # GO to the back
+        rospy.loginfo("PICK up box")
+        tutorial = MoveGroupPythonIntefaceTutorial()
+        tutorial.pick(-0.5, 0, 0.15)
+        rospy.sleep(0.5)
+        rospy.loginfo("Ready for next command")
 
 
 
@@ -376,64 +378,60 @@ if __name__ == '__main__':
     tutorial = MoveGroupPythonIntefaceTutorial()
     rospy.sleep(1)
     tutorial.add_box()
-    mc = []
 
-
-    def MC_logic(gest):
-        global mc
-        if gest.pose == 3:  # WAVE_IN
-            mc.append(0)
-            rospy.loginfo("Wave-in")
-            print(mc)
-
-        elif gest.pose == 4:  # WAVE_OUT
-            mc.append(1)
-            rospy.loginfo("Wave-out")
-            print(mc)
-
-
-
-        if len(mc) == 2 and mc == [0, 0]:
-            print("Moving to the front")
-            tutorial = MoveGroupPythonIntefaceTutorial()
-            tutorial.go_to_pose_goal(0.5, 0, 0.25)
-            mc = []
-            print("Ready for next command")
-
-        # back
-        if len(mc) == 2 and mc == [0, 1]:
-            print("Moving to the back")
-            tutorial = MoveGroupPythonIntefaceTutorial()
-            tutorial.go_to_pose_goal(-0.5, 0, 0.25)
-            mc = []
-            print("Ready for next command")
-
-        # right
-        if len(mc) == 2 and mc == [1, 0]:
-            print("Moving to the right")
-            tutorial = MoveGroupPythonIntefaceTutorial()
-            tutorial.go_to_pose_goal(0, 0.5, 0.25)
-            mc = []
-            print("Ready for next command")
-
-        # left
-        if len(mc) == 2 and mc == [1, 1]:
-            print("Moving to the left")
-            tutorial = MoveGroupPythonIntefaceTutorial()
-            tutorial.go_to_pose_goal(0, -0.5, 0.25)
-            mc = []
-            print("Ready for next command")
-
-
-    pose_sub = rospy.Subscriber('/myo_raw/myo_gest',
-                                MyoPose,
-                                MC_logic,
-                                queue_size=1)
-
-
-    # rospy.Subscriber("~myo_gest", UInt8, drive)
+    pose_sub = rospy.Subscriber('/myo_raw/myo_gest', MyoPose, MC_logic, queue_size=1)
     rospy.loginfo("Awaiting publications...")
     rospy.spin()
+
+    # def MC_logic(gest):
+    #     global mc
+    #     if gest.pose == 3:  # WAVE_IN
+    #         mc.append(0)
+    #         rospy.loginfo("Wave-in")
+    #         print(mc)
+    #         MC_commands(mc=mc)
+    #
+    #     elif gest.pose == 4:  # WAVE_OUT
+    #         mc.append(1)
+    #         rospy.loginfo("Wave-out")
+    #         print(mc)
+    #         MC_commands(mc=mc)
+
+
+
+        # if len(mc) == 2 and mc == [0, 0]:
+        #     print("Moving to the front")
+        #     tutorial = MoveGroupPythonIntefaceTutorial()
+        #     tutorial.go_to_pose_goal(0.5, 0, 0.25)
+        #     mc = []
+        #     print("Ready for next command")
+        #
+        # # back
+        # if len(mc) == 2 and mc == [0, 1]:
+        #     print("Moving to the back")
+        #     tutorial = MoveGroupPythonIntefaceTutorial()
+        #     tutorial.go_to_pose_goal(-0.5, 0, 0.25)
+        #     mc = []
+        #     print("Ready for next command")
+        #
+        # # right
+        # if len(mc) == 2 and mc == [1, 0]:
+        #     print("Moving to the right")
+        #     tutorial = MoveGroupPythonIntefaceTutorial()
+        #     tutorial.go_to_pose_goal(0, 0.5, 0.25)
+        #     mc = []
+        #     print("Ready for next command")
+        #
+        # # left
+        # if len(mc) == 2 and mc == [1, 1]:
+        #     print("Moving to the left")
+        #     tutorial = MoveGroupPythonIntefaceTutorial()
+        #     tutorial.go_to_pose_goal(0, -0.5, 0.25)
+        #     mc = []
+        #     print("Ready for next command")
+
+
+
 
 
     # tutorial.go_to_pose_goal(0.5, 0, 0.25)
